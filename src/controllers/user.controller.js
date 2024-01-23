@@ -161,6 +161,11 @@ const loginUser = asyncHandler(async(req,res) => {
 
 })
 
+/* The `logoutUser` function is responsible for logging out a user. It updates the user's document in
+the database by setting the `refreshToken` field to `undefined`. It then clears the `accessToken`
+and `refreshToken` cookies from the response, indicating that the user is logged out. Finally, it
+returns a JSON response with a success message. */
+
 const logoutUser = asyncHandler(async(req,res) => {
   await User.findByIdAndUpdate(
     req.user._id,
