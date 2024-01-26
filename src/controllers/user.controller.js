@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import mongoose from "mongoose";
 
 /* The `registerUser` function is an asynchronous function that handles the registration of a user. It
 takes in the `req` (request) and `res` (response) parameters. */
@@ -357,6 +358,139 @@ const coverImageUpdate = asyncHandler(async(req,res)=> {
 
 })
 
+
+const getUserChannelProfile = asyncHandler(async(req,res) => {
+
+  const {username} = req.params;
+
+  if(!username?.trim()){
+    throw new ApiError(400,"userName is missing");
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match:{
+        username : username?.toLowerCase()
+      }
+    },
+
+    {
+      $lookup: {
+        from:"subscriptions",
+        localField:"_id",
+        foreignField:"channel",
+        as: "subscribers"
+      }
+    },
+
+    {
+      $lookup:{
+        from:"subscriptions",
+        localField:"_id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+      }
+    },
+
+    {
+      $addFields:{
+        subscriberCount:{
+          $size: "$subscribers"
+        },
+        channelSubscribedToCount:{
+          $size: "$subscribedTo"
+        },
+        isSubscribed: {
+          $cond:{
+            if: {$in: [req.user?._id, "$subscriber.subscriber"]},
+            then: true,
+            else: false,
+          }
+        }
+      }
+    },
+
+    {
+      $project:{
+        fullName:1,
+        username:1,
+        subscriberCount:1,
+        channelSubscribedToCount:1,
+        avatar:1,
+        coverImage:1,
+        email:1,
+        isSubscribed:1
+      }
+    }
+  ])
+  console.log(channel);
+
+  if(!channel?.length){
+    throw new ApiError(404,"channel does not exist");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, channel[0],"user Fetched SuccessFully")
+  )
+})
+
+
+const getWatchHistory = asyncHandler(async(req,res) => {
+   
+  const user = await User.aggregate([
+    {
+      $match:{
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from:"videos",
+        localField:"watchHistory",
+        foreignField:"_id",
+        as:"watchHistory",
+        pipeline: [
+          {
+            $lookup:{
+              from:"videos",
+              localField:"owner",
+              foreignField:"_id",
+              as:"owner",
+              pipeline: [
+                {
+                  $project:{
+                    fullName:1,
+                    username:1,
+                    avatar:1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $addFields:{
+              owner:{
+                $first:"$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ])
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user[0].watchHistory,
+      "watch History fetched successfully"
+    )
+  )
+   
+})
+
+
 export { registerUser,loginUser,logoutUser,refreshAccessToken,
   changeCurrentPassword,getCurrentUser,updateAccountDetails,
-  updateUserAvatar,coverImageUpdate };
+  updateUserAvatar,coverImageUpdate,getUserChannelProfile,
+  getWatchHistory };
