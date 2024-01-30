@@ -47,6 +47,10 @@ const registerUser = asyncHandler( async(req,res) => {
 
     //validation
     
+   /* The above code is checking if any of the fields (fullName, email, username, password) are empty
+   or contain only whitespace characters. If any of the fields are empty or contain only whitespace
+   characters, it throws an ApiError with a status code of 400 and a message "All fields are
+   required". */
     if([fullName,email,username,password].some((field)=>field?.trim()==="")){
         throw new ApiError(400,"All fields are required");
     }
@@ -76,6 +80,9 @@ const registerUser = asyncHandler( async(req,res) => {
 
     //cloudinary upload
 
+/* The above code is using the `await` keyword to asynchronously upload an avatar and a cover image to
+Cloudinary. It is calling the `uploadOnCloudinary` function with the local paths of the avatar and
+cover image files, and waiting for the upload to complete before moving on to the next line of code. */
    const avatar = await uploadOnCloudinary(avatarLocalPath);
    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
@@ -85,6 +92,10 @@ const registerUser = asyncHandler( async(req,res) => {
 
    //connecting to db
 
+  /* The above code is creating a new user object using the User.create() method. It takes in several
+  parameters including fullName, avatar, coverImage, email, password, and username. The avatar and
+  coverImage parameters are optional and can be provided as URLs. The username is converted to
+  lowercase before being assigned to the user object. */
    const user = await User.create({
         fullName,
         avatar:avatar.url,
@@ -146,6 +157,11 @@ const loginUser = asyncHandler(async(req,res) => {
     const loggedInUser = await User.findById(user._id).
     select("-password -refreshToken");
 
+/* The above code is creating a constant variable named "options" that is an object. This object has
+two properties: "httpOnly" and "secure". The "httpOnly" property is set to true, which means that
+the cookie can only be accessed through HTTP requests and is not accessible through client-side
+JavaScript. The "secure" property is also set to true, which means that the cookie can only be
+transmitted over a secure HTTPS connection. */
     const options = {
       httpOnly:true,
       secure:true
@@ -173,6 +189,11 @@ and `refreshToken` cookies from the response, indicating that the user is logged
 returns a JSON response with a success message. */
 
 const logoutUser = asyncHandler(async(req,res) => {
+  /* The above code is updating a user document in a MongoDB database. It is using the
+  `findByIdAndUpdate` method to find a user by their `_id` and then updating the document by
+  unsetting the `refreshToken` field. The `refreshToken` field is being set to `1` in the ``
+  operator, which effectively removes the field from the document. The `new` option is set to
+  `true`, which means that the updated document will be returned as the result of the operation. */
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -204,7 +225,12 @@ const refreshAccessToken = asyncHandler( async(req,res) => {
     throw new ApiError(401,"Unauthorized Access");
   }
 
+
   try {
+   /* The above code is decoding a JSON Web Token (JWT) using the `jwt.verify` method. It takes in the
+   `incomingRefreshToken` as the token to be decoded and the `process.env.REFRESH_TOKEN_SECRET` as
+   the secret key used to verify the token's authenticity. The `decodedToken` variable will store
+   the decoded information from the token. */
     const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET);
   
     const user = await User.findById(decodedToken?._id);
@@ -367,6 +393,8 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
     throw new ApiError(400,"userName is missing");
   }
 
+  /* The above code is performing an aggregation operation on the "User" collection in a MongoDB
+  database. */
   const channel = await User.aggregate([
     {
       $match:{
@@ -374,6 +402,8 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
       }
     },
 
+   /* The above code is performing a MongoDB aggregation operation called lookup. It is used to
+   perform a left outer join between the current collection and the "subscriptions" collection. */
     {
       $lookup: {
         from:"subscriptions",
@@ -382,6 +412,8 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
         as: "subscribers"
       }
     },
+/* The above code is performing a MongoDB aggregation operation called . It is used to perform a
+left outer join between the current collection and the "subscriptions" collection. */
 
     {
       $lookup:{
@@ -400,6 +432,9 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
         channelSubscribedToCount:{
           $size: "$subscribedTo"
         },
+        /* The above code is a MongoDB aggregation pipeline expression written in JavaScript. It is
+        checking if the `req.user?._id` (the user's ID) is present in the `subscriber.subscriber`
+        array. */
         isSubscribed: {
           $cond:{
             if: {$in: [req.user?._id, "$subscriber.subscriber"]},
@@ -423,7 +458,7 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
       }
     }
   ])
-  console.log(channel);
+  // console.log(channel);
 
   if(!channel?.length){
     throw new ApiError(404,"channel does not exist");
