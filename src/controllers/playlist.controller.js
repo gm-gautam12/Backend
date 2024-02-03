@@ -4,6 +4,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { User } from "../models/user.models.js"
+import { Video } from "../models/video.model.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -185,12 +186,67 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.params
+    const {playlistId, videoId} = req.params;
+
+    if(!isValidObjectId(playlistId) && !isValidObjectId(videoId))
+    throw new ApiError(404,"invalid playlist or video");
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if(!playlist)
+    throw new ApiError(404,"playlist not found");
+
+    const video = await Video.findById(videoId);
+
+    if(!video)
+    throw new ApiError(404,"video not found");
+
+    if(playlist.videos.includes(videoId))
+    throw new ApiError(400,"video already exists in playlist");
+
+    const updatePlaylist = await Playlist.findByIdAndUpdate(playlistId,{
+        $push:{
+            videos:videoId,
+        }
+    });
+
+    if(!updatePlaylist)
+    throw new ApiError(500,"something went wrong while adding video to playlist");
+
+    res.status(200).json(
+        new ApiResponse(200,updatePlaylist,"video added to playlist successfully")
+    );
 })
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.params
+    const {playlistId, videoId} = req.params;
     // TODO: remove video from playlist
+
+    if(!isValidObjectId(playlistId) && !isValidObjectId(videoId))
+    throw new ApiError(404,"invalid playlist or video");
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if(!playlist)
+    throw new ApiError(404,"playlist not found");
+
+    const video = await Video.findById(videoId);
+
+    if(!video)
+    throw new ApiError(404,"video does not found");
+
+    const updatePlaylist = await playlist.findByIdAndUpdate(playlistId,{
+        $pull : {
+            videos:videoId,
+        }
+    })
+
+    if(!updatePlaylist)
+    throw new ApiError(500,"something went wrong while removing video from playlist");
+
+    res.status(200).json(
+        new ApiResponse(200, updatePlaylist, "vido removed from playlist")
+    );
 
 })
 
