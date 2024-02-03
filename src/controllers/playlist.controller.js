@@ -239,7 +239,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
         $pull : {
             videos:videoId,
         }
-    })
+    })    
 
     if(!updatePlaylist)
     throw new ApiError(500,"something went wrong while removing video from playlist");
@@ -251,14 +251,55 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
+    const {playlistId} = req.params;
     // TODO: delete playlist
+
+    if(!isValidObjectId(playlistId))
+    throw new ApiError(404,"invalid playlist");
+
+    const playlist  = await Playlist.findById(playlistId);
+
+    if(!playlist)
+    throw new ApiError(404,"playlist not found");
+
+    const deletePlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+    if(!deletePlaylist)
+    throw new ApiError(500,"something went wrong while deleting playlist");
+
+    res.status(200).json(
+        new ApiResponse(200, deletePlaylist, "playlist deleted successfully")
+    )
+
 })
 
+
 const updatePlaylist = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
-    const {name, description} = req.body
+    const {playlistId} = req.params;
+    const {name, description} = req.body;
     //TODO: update playlist
+
+    if(!isValidObjectId(playlistId))
+    throw new ApiError(404,"invalid playlist");
+
+    if(!name || !description)
+    throw new ApiError(404,"name and description are required");
+
+    const updatePlaylist = await Playlist.findByIdAndUpdate(playlistId,{
+        $set:{
+            name,
+            description,
+        }
+
+    })
+
+    if(!updatePlaylist)
+    throw new ApiError(500,"something went wrong while updating playlist");
+
+    res.status(200).json(
+        new ApiResponse(200, updatePlaylist," playlist updated successfully")
+    );
+
 })
 
 export {
