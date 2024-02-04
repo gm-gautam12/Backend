@@ -14,6 +14,12 @@ const createPlaylist = asyncHandler(async (req, res) => {
     if(!name && !description)
     throw new ApiError(404,"name and description is required");
 
+    /* The code `const playlist = await Playlist.create({ name, description, owner:req.user._id });` is
+    creating a new playlist in the database using the `Playlist` model. It assigns the `name` and
+    `description` values from the `req.body` object to the corresponding fields in the playlist
+    document. The `owner` field is set to the `_id` of the currently authenticated user
+    (`req.user._id`). The `await` keyword is used to wait for the creation of the playlist before
+    proceeding. The created playlist is then assigned to the `playlist` variable. */
     const playlist = await Playlist.create({
         name,
         description,
@@ -41,15 +47,18 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     if(!user)
     throw new ApiError(404,"invalid userId");
 
+   /* The code is performing an aggregation operation on the Playlist collection in the database. */
     const playlists = await Playlist.aggregate([
-
         {
             $match:{
                 owner:new Types.ObjectId(userId),
             }
         },
 
-        {
+        {/* The `` stage in the aggregation pipeline is used to perform a left outer join with
+        another collection. In this case, it is joining the `Playlist` collection with the `videos`
+        collection. */
+        
             $lookup:{
                 from: "videos",
                 localField:"videos",
@@ -74,6 +83,8 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         },
 
         {
+            /* The `` stage in the aggregation pipeline is used to add a new field called
+            `playlistThumbnail` to the documents in the pipeline. */
             $addFields:{
                 playlistThumbnail:{
                     $cond:{
@@ -113,6 +124,9 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     if(!playlistExists)
     throw new ApiError(404,"playlist not found");
 
+   /* The code `const playlist = await Playlist.aggregate([...])` is performing an aggregation
+   operation on the Playlist collection in the database. Aggregation allows you to process and
+   transform data from multiple documents in a collection and return the computed results. */
     const playlist = await Playlist.aggregate([
         {
             $match:{
@@ -185,6 +199,8 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
 })
 
+/* The `addVideoToPlaylist` function is an asynchronous function that handles the logic for adding a
+video to a playlist. */
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params;
 
