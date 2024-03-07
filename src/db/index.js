@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
 
+/**
+ * The function `connectDB` connects to a MongoDB database using the provided URI and database name,
+ * logging the connection status.
+ */
 
 const connectDB = async () => {
     try {
